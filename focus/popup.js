@@ -1,17 +1,48 @@
 const startButton = document.getElementById("start");
 const stopButton = document.getElementById("stop");
 const resetButton = document.getElementById("reset");
+
 const workTimeInput = document.getElementById("work-time");
 const timeLeftSpan = document.querySelector(".time-left");
 
 let interval;
-let workTimeInSeconds = 0;
+let remainingWorkTimeInSeconds = 0;
+
+function initTimer() {
+  chrome.storage.local.get("targetTime", ({ targetTime }) => {
+    if (targetTime) {
+      const currentTime = Math.floor(new Date().getTime() / 1000);
+      remainingWorkTimeInSeconds = targetTime - currentTime;
+
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+
+      updateUi();
+
+      interval = setInterval(() => {
+        if (remainingWorkTimeInSeconds <= 0) {
+          clearInterval(interval);
+          alert("Time's up!");
+          return;
+        }
+
+        remainingWorkTimeInSeconds--;
+        updateUi();
+      }, 1000);
+    }
+  });
+}
+
+initTimer();
 
 startButton.addEventListener("click", () => {
-  console.log("Start button clicked");
+  remainingWorkTimeInSeconds = getInputWorkTimeInSeconds();
 
-  const workTime = workTimeInput.value;
-  workTimeInSeconds = workTime * 60;
+  const targetTime =
+    Math.floor(new Date().getTime() / 1000) + remainingWorkTimeInSeconds;
+  chrome.storage.local.set({ targetTime });
 
   if (interval) {
     clearInterval(interval);
@@ -19,46 +50,48 @@ startButton.addEventListener("click", () => {
   }
 
   interval = setInterval(() => {
-    console.log(interval);
-    if (workTimeInSeconds <= 0) {
+    if (remainingWorkTimeInSeconds <= 0) {
       clearInterval(interval);
       alert("Time's up!");
       return;
     }
 
-    workTimeInSeconds--;
-    timeLeftSpan.textContent = `${Math.floor(workTimeInSeconds / 60)}:${
-      workTimeInSeconds % 60
-    }`;
+    remainingWorkTimeInSeconds--;
+    updateUi();
   }, 1000);
 });
 
 stopButton.addEventListener("click", () => {
+  chrome.storage.local.remove("targetTime");
   clearInterval(interval);
   interval = null;
-  const workTime = workTimeInput.value;
-  workTimeInSeconds = workTime * 60;
-  timeLeftSpan.textContent = `${Math.floor(workTimeInSeconds / 60)}:${
-    workTimeInSeconds % 60
-  }`;
+  remainingWorkTimeInSeconds = getInputWorkTimeInSeconds();
+  updateUi();
 });
 
 resetButton.addEventListener("click", () => {
   clearInterval(interval);
-  const workTime = workTimeInput.value;
-  workTimeInSeconds = workTime * 60;
+  remainingWorkTimeInSeconds = getInputWorkTimeInSeconds();
 
   interval = setInterval(() => {
     console.log(interval);
-    if (workTimeInSeconds <= 0) {
+    if (remainingWorkTimeInSeconds <= 0) {
       clearInterval(interval);
       alert("Time's up!");
       return;
     }
 
-    workTimeInSeconds--;
-    timeLeftSpan.textContent = `${Math.floor(workTimeInSeconds / 60)}:${
-      workTimeInSeconds % 60
-    }`;
+    remainingWorkTimeInSeconds--;
+    updateUi();
   }, 1000);
 });
+
+function updateUi() {
+  timeLeftSpan.textContent = `${Math.floor(remainingWorkTimeInSeconds / 60)}:${
+    remainingWorkTimeInSeconds % 60
+  }`;
+}
+
+function getInputWorkTimeInSeconds() {
+  return workTimeInput.value * 60;
+}
