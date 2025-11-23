@@ -1,0 +1,28 @@
+body {
+    width: 100%
+}
+
+.timer {
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-align: center;
+    padding: 20px;
+}
+
+.controls {
+    display: flex;
+    padding: 10px 20px;
+    gap: 10px;
+}
+
+.settings {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 20px;
+    gap: 10px;
+}
+
+.setting-item {
+    display: flex;
+    flex-direction: column;
+}
