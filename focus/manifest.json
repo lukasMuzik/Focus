@@ -8,5 +8,5 @@
   "background": {
     "service_worker": "alert.js"
   },
-  "permissions": ["storage", "alarms", "notifications"]
+  "permissions": ["storage", "alarms", "notifications", "declarativeNetRequest"]
 }
