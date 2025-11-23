@@ -8,5 +8,6 @@
   "background": {
     "service_worker": "alert.js"
   },
-  "permissions": ["storage", "alarms", "notifications", "declarativeNetRequest"]
+  "permissions": ["storage", "alarms", "notifications", "declarativeNetRequest"],
+  "host_permissions": ["<all_urls>"]
 }

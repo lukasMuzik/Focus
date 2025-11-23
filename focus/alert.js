@@ -33,7 +33,10 @@ function setBlocking(enabled) {
       ? BLOCKED_SITES.map((domain, index) => ({
           id: index + 1,
           priority: 1,
-          action: { type: "block" },
+          action: {
+            type: "redirect",
+            redirect: { extensionPath: "/blocked.html" },
+          },
           condition: {
             urlFilter: `||${domain}`,
             resourceTypes: [
@@ -63,4 +66,18 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
       setBlocking(false);
     }
   }
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  chrome.storage.local.remove("targetTime");
+
+  chrome.alarms.clearAll();
+
+  setBlocking(false);
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+  setBlocking(false);
+  chrome.storage.local.remove("targetTime");
+  chrome.alarms.clearAll();
 });
