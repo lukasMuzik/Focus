@@ -8,85 +8,58 @@ const timeLeftSpan = document.querySelector(".time-left");
 let interval;
 let remainingWorkTimeInSeconds = 0;
 
-function initTimer() {
-  chrome.storage.local.get("targetTime", ({ targetTime }) => {
-    if (targetTime) {
-      const currentTime = Math.floor(new Date().getTime() / 1000);
-      remainingWorkTimeInSeconds = targetTime - currentTime;
-
-      if (interval) {
-        clearInterval(interval);
-        interval = null;
-      }
-
-      updateUi();
-
-      interval = setInterval(() => {
-        if (remainingWorkTimeInSeconds <= 0) {
-          clearInterval(interval);
-          alert("Time's up!");
-          return;
-        }
-
-        remainingWorkTimeInSeconds--;
-        updateUi();
-      }, 1000);
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === "local" && changes.targetTime) {
+    if (!changes.targetTime.newValue) {
+      clearInterval(interval);
+      interval = null;
+      remainingWorkTimeInSeconds = getInputWorkTimeInSeconds();
+      updateTimerDisplay();
     }
-  });
-}
+  }
+});
 
-initTimer();
-
-startButton.addEventListener("click", () => {
-  remainingWorkTimeInSeconds = getInputWorkTimeInSeconds();
-
-  const targetTime =
-    Math.floor(new Date().getTime() / 1000) + remainingWorkTimeInSeconds;
-  chrome.storage.local.set({ targetTime });
-
+function startCountdown() {
   if (interval) {
     clearInterval(interval);
     interval = null;
   }
 
   interval = setInterval(() => {
+    remainingWorkTimeInSeconds--;
+    updateTimerDisplay();
+
     if (remainingWorkTimeInSeconds <= 0) {
       clearInterval(interval);
-      alert("Time's up!");
-      return;
     }
-
-    remainingWorkTimeInSeconds--;
-    updateUi();
   }, 1000);
-});
+}
 
-stopButton.addEventListener("click", () => {
-  chrome.storage.local.remove("targetTime");
-  clearInterval(interval);
-  interval = null;
-  remainingWorkTimeInSeconds = getInputWorkTimeInSeconds();
-  updateUi();
-});
+function initTimer() {
+  chrome.storage.local.get("targetTime", ({ targetTime }) => {
+    if (targetTime) {
+      const currentTime = Math.floor(new Date().getTime() / 1000);
+      remainingWorkTimeInSeconds = targetTime - currentTime;
 
-resetButton.addEventListener("click", () => {
-  clearInterval(interval);
-  remainingWorkTimeInSeconds = getInputWorkTimeInSeconds();
-
-  interval = setInterval(() => {
-    console.log(interval);
-    if (remainingWorkTimeInSeconds <= 0) {
-      clearInterval(interval);
-      alert("Time's up!");
-      return;
+      updateTimerDisplay();
+      startCountdown();
     }
+  });
+}
 
-    remainingWorkTimeInSeconds--;
-    updateUi();
-  }, 1000);
-});
+function scheduleCompletionAlarm() {
+  chrome.alarms.create("focusTimer", {
+    delayInMinutes: getInputWorkTimeInSeconds() / 60,
+  });
+}
 
-function updateUi() {
+function saveTargetTimestamp() {
+  const targetTime =
+    Math.floor(new Date().getTime() / 1000) + remainingWorkTimeInSeconds;
+  chrome.storage.local.set({ targetTime });
+}
+
+function updateTimerDisplay() {
   timeLeftSpan.textContent = `${Math.floor(remainingWorkTimeInSeconds / 60)}:${
     remainingWorkTimeInSeconds % 60
   }`;
@@ -95,3 +68,24 @@ function updateUi() {
 function getInputWorkTimeInSeconds() {
   return workTimeInput.value * 60;
 }
+
+function handleStartTimer() {
+  remainingWorkTimeInSeconds = getInputWorkTimeInSeconds();
+
+  scheduleCompletionAlarm();
+
+  saveTargetTimestamp();
+
+  startCountdown();
+}
+
+function handleStopTimer() {
+  chrome.alarms.clear("focusTimer");
+  chrome.storage.local.remove("targetTime");
+}
+
+startButton.addEventListener("click", handleStartTimer);
+resetButton.addEventListener("click", handleStartTimer);
+stopButton.addEventListener("click", handleStopTimer);
+
+initTimer();
